@@ -33,28 +33,16 @@ It identifies potential option mispricing across the 25 largest S&P 500 companie
 ## Results & Outputs
 
 ### Mispricing Visualization
-
 ![Mispricing Chart](images/mispricing_chart.png)
 
 ### Sample Console Output
-
 ![Console Output](images/console.png)
 
 ### Dataset Snapshot
-
 ![Dataset](images/dataset.png)
 
 ### Chart Data Preview
-
 ![Chart Data](images/chart.png)
-
----
-
-## Download Sample Output
-
-A sample Excel workbook with full results can be downloaded here:
-
-[Download Excel Output](outputs/sample_output.xlsx)
 
 ---
 
