@@ -1,4 +1,4 @@
-# Option Pricing & Mispricing Detection (Black–Scholes–Merton)
+# Option Pricing & Mispricing Detection (Black Scholes Merton)
 
 ## Overview
 
