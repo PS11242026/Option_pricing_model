@@ -4,7 +4,7 @@ Command-line research engine for pricing near-the-money equity options with the 
 
 ## Features
 
-- Uses a fixed Top 25 large-cap equity universe in `data_fetch.py`.
+- Uses a fixed Top 25 large-cap equity index in `data_fetch.py`.
 - Fetches the nearest available option expiry from Yahoo Finance.
 - Selects near-the-money calls and puts using current spot price.
 - Estimates annualized historical volatility from recent daily returns.
@@ -27,8 +27,7 @@ Command-line research engine for pricing near-the-money equity options with the 
 ## Requirements
 
 - Python 3.10 or newer
-- Internet access for Yahoo Finance data
-
+- Internet access for live yahoo finance market data
 Python 3.11 or 3.12 is recommended for the broadest scientific-package compatibility.
 
 ## Setup
@@ -65,23 +64,10 @@ python -m unittest discover -s tests
 python main.py
 ```
 
-The command writes `option_pricing_analysis.xlsx` in the project directory. This workbook is generated output and is intentionally excluded from Git.
+The command writes `option_pricing_analysis.xlsx` in the project directory. This workbook is generated output containing BSM price calculations and mispricing analysis.
 
 ## Notes
 
-Yahoo Finance option chains may be delayed, incomplete, or unavailable for some tickers. The engine skips tickers with missing or unusable option data so the remaining universe can still process.
+Yahoo Finance option chains may be delayed, incomplete, or unavailable for some tickers. The engine skips tickers with missing or unusable option data so the remaining index can still process.
 
-The market-cap universe is fixed in source code for repeatable ticker selection. Pricing results will still vary over time because they depend on live market data.
-
-## Upload to GitHub
-
-After installing Git, run these commands from this directory:
-
-```powershell
-git init
-git add .
-git commit -m "Clean reproducible option pricing project"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
-```
+The market-cap index is fixed in source code for repeatable ticker selection, Pricing results will still vary over time because they depend on live market data.
