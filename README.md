@@ -12,6 +12,10 @@ Command line research engine for pricing near the money equity options with the 
 - Writes an Excel workbook with the full dataset and a mispricing chart.
 
 ## Results & Outputs
+## Output Data
+
+Download full resulting dataset:
+[option_pricing_analysis.xlsx](option_pricing_analysis.xlsx)
 
 ### Terminal Execution
 
