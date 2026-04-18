@@ -1,4 +1,4 @@
-"""Black-Scholes-Merton pricing formulas for European options."""
+"""Black Scholes Merton pricing formulas for European options."""
 
 from __future__ import annotations
 
