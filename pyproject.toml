@@ -1,0 +1,16 @@
+[project]
+name = "option-pricing-project"
+version = "0.1.0"
+description = "CLI option-pricing and mispricing analysis using Yahoo Finance data and Black-Scholes-Merton pricing."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "yfinance>=0.2.55",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scipy>=1.12",
+    "xlsxwriter>=3.2",
+]
+
+[tool.setuptools]
+py-modules = ["bsm", "data_fetch", "main"]
