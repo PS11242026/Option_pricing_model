@@ -11,6 +11,31 @@ Command line research engine for pricing near the money equity options with the 
 - Prices options with Black Scholes Merton.
 - Writes an Excel workbook with the full dataset and a mispricing chart.
 
+## Results & Outputs
+
+### Terminal Execution
+
+![Terminal Output 1](images/terminal_output_1.png)
+![Terminal Output 2](images/terminal_output_2.png)
+
+---
+
+### Full Dataset
+
+![Dataset](images/full_dataset.png)
+
+---
+
+### Chart Data
+
+![Chart Data](images/chart_data.png)
+
+---
+
+### Mispricing Visualization
+
+![Mispricing Chart](images/mispricing_chart.png)
+
 ## Project Structure
 
 ```text
