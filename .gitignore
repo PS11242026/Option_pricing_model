@@ -13,7 +13,8 @@ env/
 .env.*
 
 # Generated outputs
-option_pricing_analysis*.xlsx
+.yfinance_cache/
+
 
 # Tooling and OS files
 .pytest_cache/

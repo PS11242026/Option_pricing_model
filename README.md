@@ -1,14 +1,15 @@
 # Option Pricing and Mispricing Detection
 
-Command line research engine for pricing near the money equity options with the Black Scholes Merton equations and comparing model prices with Yahoo Finance market prices.
+Command line research engine for pricing equity options with the Black Scholes Merton equations and comparing model prices with Yahoo Finance's last actively traded call and put prices.
 
 ## Features
 
 - Uses a fixed Top 25 large cap equity index in `data_fetch.py`.
-- Fetches the nearest available option expiry from Yahoo Finance.
-- Selects near the money calls and puts using current spot price.
-- Estimates annualized historical volatility from recent daily returns.
-- Prices options with Black Scholes Merton.
+- Scans Yahoo Finance option chains for each ticker's most recently traded usable call and put contracts.
+- Uses each active contract's implied volatility, strike, expiry, and last traded price.
+- Prices BSM call and BSM put values from the matching active contract inputs.
+- Compares each BSM output with the matching option type's last actively traded price.
+- Prices options with dividend-aware Black Scholes Merton.
 - Writes an Excel workbook with the full dataset and a mispricing chart.
 
 ## Results & Outputs

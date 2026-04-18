@@ -11,6 +11,11 @@ class BlackScholesMertonTests(unittest.TestCase):
         self.assertAlmostEqual(call_price(100, 100, 1, 0.05, 0.2), 10.4506, places=4)
         self.assertAlmostEqual(put_price(100, 100, 1, 0.05, 0.2), 5.5735, places=4)
 
+    def test_known_call_and_put_prices_with_dividend_yield(self):
+        # BSM with continuous dividends should match known benchmark values.
+        self.assertAlmostEqual(call_price(100, 100, 1, 0.05, 0.2, 0.02), 9.2270, places=4)
+        self.assertAlmostEqual(put_price(100, 100, 1, 0.05, 0.2, 0.02), 6.3301, places=4)
+
     def test_option_type_dispatch(self):
         # The wrapper should match the direct call and put helpers.
         self.assertAlmostEqual(

@@ -3,17 +3,22 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
 
 
-# Settings used while filtering market data and estimating volatility.
+# Settings used while filtering market data and choosing liquid contracts.
 TRADING_DAYS = 252
 MIN_OPTION_PRICE = 0.50
 MIN_VOLATILITY = 0.05
-MIN_TIME_TO_MATURITY = 1 / 365
+MIN_TIME_TO_MATURITY = 1 / (365 * 24)
+YFINANCE_CACHE_DIR = Path(__file__).resolve().parent / ".yfinance_cache"
+
+YFINANCE_CACHE_DIR.mkdir(exist_ok=True)
+yf.set_tz_cache_location(str(YFINANCE_CACHE_DIR))
 
 
 def normalize_yfinance_ticker(symbol: str) -> str:
@@ -77,6 +82,29 @@ def get_spot_price(ticker: yf.Ticker) -> float:
     return float(close.iloc[-1])
 
 
+def get_dividend_yield(ticker: yf.Ticker) -> float:
+    """Fetch the current annual dividend yield as a decimal, defaulting to zero."""
+    try:
+        info = ticker.info
+    except Exception:
+        return 0.0
+
+    dividend_yield = info.get("trailingAnnualDividendYield")
+    if dividend_yield is None or pd.isna(dividend_yield):
+        dividend_yield = info.get("dividendYield")
+        if dividend_yield is None or pd.isna(dividend_yield):
+            return 0.0
+
+        # Yahoo's dividendYield field is commonly in percentage-point units:
+        # 0.38 means 0.38%, not 38%.
+        dividend_yield = float(dividend_yield) / 100
+
+    dividend_yield = float(dividend_yield)
+    if dividend_yield <= 0:
+        return 0.0
+    return dividend_yield
+
+
 def historical_volatility(symbol: str, window: int = 60) -> float | None:
     """Compute annualized historical volatility from recent daily log returns."""
     # Return None when Yahoo data is missing so the ticker can be skipped cleanly.
@@ -111,42 +139,117 @@ def years_to_expiry(expiry: str) -> float:
 
 
 def option_market_price(option: pd.Series) -> float | None:
-    """Prefer bid/ask midpoint, then fall back to last traded price."""
-    # Yahoo sometimes leaves fields blank, so default missing quotes to zero.
-    bid = float(option.get("bid", 0.0) or 0.0)
-    ask = float(option.get("ask", 0.0) or 0.0)
+    """Return Yahoo's last traded option price when it is usable."""
     last = float(option.get("lastPrice", 0.0) or 0.0)
 
-    # The bid/ask midpoint is usually better than an old last-traded price.
-    if bid > 0 and ask > 0 and ask >= bid:
-        return (bid + ask) / 2
-
-    # If bid/ask is not usable, last trade is still better than no price.
     if last > 0:
         return last
     return None
 
 
-def select_atm_option(options: pd.DataFrame, spot: float) -> pd.Series | None:
-    """Select the nearest ATM option with enough market price to be useful."""
-    # Skip chains that are empty or missing the basic price column.
-    if options.empty or "lastPrice" not in options:
+def option_implied_volatility(option: pd.Series) -> float | None:
+    """Return a usable implied volatility from a Yahoo option row."""
+    volatility = option.get("impliedVolatility")
+    if volatility is None or pd.isna(volatility):
         return None
 
-    # Add one clean market price column and filter out tiny quotes.
+    volatility = float(volatility)
+    if volatility < MIN_VOLATILITY:
+        return None
+    return volatility
+
+
+def option_numeric_column(options: pd.DataFrame, column: str) -> pd.Series:
+    """Return a numeric option-chain column, defaulting missing columns to zero."""
+    if column in options:
+        return pd.to_numeric(options[column], errors="coerce").fillna(0)
+    return pd.Series(0, index=options.index, dtype="float64")
+
+
+def prepare_active_options(options: pd.DataFrame, expiry: str, option_type: str) -> pd.DataFrame:
+    """Return usable option rows annotated for active-contract selection."""
+    if options.empty or "lastPrice" not in options or "lastTradeDate" not in options:
+        return pd.DataFrame()
+
     tradable = options.copy()
     tradable["Market"] = tradable.apply(option_market_price, axis=1)
-    tradable = tradable[tradable["Market"] > MIN_OPTION_PRICE]
+    tradable["Volatility"] = tradable.apply(option_implied_volatility, axis=1)
+    tradable["LastTradeDate"] = pd.to_datetime(tradable["lastTradeDate"], errors="coerce", utc=True)
+    tradable["Volume"] = option_numeric_column(tradable, "volume")
+    tradable["OpenInterest"] = option_numeric_column(tradable, "openInterest")
+    tradable["Market"] = pd.to_numeric(tradable["Market"], errors="coerce")
+    tradable["Volatility"] = pd.to_numeric(tradable["Volatility"], errors="coerce")
+    tradable = tradable[
+        (tradable["Market"] > MIN_OPTION_PRICE)
+        & tradable["Volatility"].notna()
+        & tradable["LastTradeDate"].notna()
+    ].copy()
     if tradable.empty:
+        return pd.DataFrame()
+
+    tradable["Expiry"] = expiry
+    tradable["OptionType"] = option_type
+    return tradable
+
+
+def select_last_active_option(ticker: yf.Ticker, expiries: tuple[str, ...] | list[str]) -> pd.Series | None:
+    """Select the most recently traded Yahoo option contract for one ticker."""
+    candidates: list[pd.DataFrame] = []
+
+    for expiry in expiries:
+        try:
+            chain = ticker.option_chain(expiry)
+        except Exception:
+            continue
+
+        for options, option_type in ((chain.calls, "call"), (chain.puts, "put")):
+            active = prepare_active_options(options, expiry, option_type)
+            if not active.empty:
+                candidates.append(active)
+
+    if not candidates:
         return None
 
-    # The ATM contract is the strike closest to the current stock price.
-    tradable["MoneynessDistance"] = (tradable["strike"] - spot).abs() / spot
-    return tradable.sort_values("MoneynessDistance").iloc[0]
+    tradable = pd.concat(candidates, ignore_index=True)
+    return tradable.sort_values(
+        ["LastTradeDate", "Volume", "OpenInterest", "Market"],
+        ascending=[False, False, False, False],
+    ).iloc[0]
 
 
-def fetch_atm_option_rows(symbol: str, market_cap: float) -> list[dict[str, float | str]]:
-    """Fetch ATM call and put rows for one ticker."""
+def select_last_active_options_by_type(
+    ticker: yf.Ticker, expiries: tuple[str, ...] | list[str]
+) -> dict[str, pd.Series]:
+    """Select the most recently traded Yahoo call and put contracts for one ticker."""
+    candidates: dict[str, list[pd.DataFrame]] = {"call": [], "put": []}
+
+    for expiry in expiries:
+        try:
+            chain = ticker.option_chain(expiry)
+        except Exception:
+            continue
+
+        for options, option_type in ((chain.calls, "call"), (chain.puts, "put")):
+            active = prepare_active_options(options, expiry, option_type)
+            if not active.empty:
+                candidates[option_type].append(active)
+
+    selected: dict[str, pd.Series] = {}
+    for option_type, option_frames in candidates.items():
+        if not option_frames:
+            continue
+
+        tradable = pd.concat(option_frames, ignore_index=True)
+        selected[option_type] = tradable.sort_values(
+            ["LastTradeDate", "Volume", "OpenInterest", "Market"],
+            ascending=[False, False, False, False],
+        ).iloc[0]
+
+    return selected
+
+
+def fetch_active_option_rows(symbol: str, market_cap: float) -> list[dict[str, float | str]]:
+    """Fetch rows priced from the last actively traded call and put for one ticker."""
     # Normalize once, then reuse the same Yahoo Finance object for this ticker.
     yf_symbol = normalize_yfinance_ticker(symbol)
     ticker = yf.Ticker(yf_symbol)
@@ -154,41 +257,49 @@ def fetch_atm_option_rows(symbol: str, market_cap: float) -> list[dict[str, floa
     # Pull together the inputs needed to price the nearest expiry.
     try:
         spot = get_spot_price(ticker)
+        dividend_yield = get_dividend_yield(ticker)
         expiries = ticker.options
         if not expiries:
             return []
 
-        expiry = expiries[0]
-        chain = ticker.option_chain(expiry)
-        volatility = historical_volatility(yf_symbol)
-        if volatility is None or volatility < MIN_VOLATILITY:
+        selected_options = select_last_active_options_by_type(ticker, expiries)
+        if not selected_options:
             return []
-
-        time_to_maturity = years_to_expiry(expiry)
     except Exception:
         return []
 
-    # Build one row for the best call and one row for the best put.
+    # Price each BSM side against the market price and IV of the matching option type.
     rows: list[dict[str, float | str]] = []
-    for options, option_type in ((chain.calls, "call"), (chain.puts, "put")):
-        option = select_atm_option(options, spot)
+    for option_type in ("call", "put"):
+        option = selected_options.get(option_type)
         if option is None:
             continue
 
-        # Store the values that main.py will price and write to Excel.
+        expiry = str(option["Expiry"])
         strike = float(option["strike"])
+        contract_symbol = str(option.get("contractSymbol", ""))
+        last_trade_date = option["LastTradeDate"].isoformat()
         rows.append(
             {
                 "Ticker": yf_symbol,
                 "MarketCap": market_cap,
                 "Type": option_type,
+                "MarketOptionType": str(option["OptionType"]),
+                "ContractSymbol": contract_symbol,
+                "LastTradeDate": last_trade_date,
                 "Spot": spot,
                 "Strike": strike,
                 "Expiry": expiry,
-                "t(years)": time_to_maturity,
-                "Volatility": volatility,
+                "t(years)": years_to_expiry(expiry),
+                "Volatility": float(option["Volatility"]),
+                "DividendYield": dividend_yield,
                 "Market": float(option["Market"]),
             }
         )
 
     return rows
+
+
+def fetch_atm_option_rows(symbol: str, market_cap: float) -> list[dict[str, float | str]]:
+    """Backward-compatible wrapper for callers using the old ATM function name."""
+    return fetch_active_option_rows(symbol, market_cap)
