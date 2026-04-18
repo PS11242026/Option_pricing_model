@@ -143,15 +143,7 @@ python -m unittest discover -s tests
 
 ## Key Observations
 
-* Most options show small mispricing, suggesting near market efficiency
 * Higher implied volatility stocks exhibit larger deviations
 * Short-dated options tend to show more pricing noise
 
----
 
-## Future Improvements
-
-* Normalize mispricing (percentage-based)
-* Grouped CALL vs PUT visualization
-* Risk simulation (Monte Carlo)
-* Regression analysis of mispricing drivers
