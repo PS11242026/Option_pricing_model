@@ -116,14 +116,10 @@ def save_workbook(df: pd.DataFrame, path: str = WORKBOOK_XLSX) -> None:
     output_df = cleaned_output_df(df)
     chart_df = output_df[["Ticker", "Spot", "Absolute Mispricing"]].copy()
     chart_df.insert(
-        0,
-        "Label",
-        output_df["Ticker"]
-        + " "
-        + output_df["Type"].str.upper()
-        + " $"
-        + chart_df["Spot"].map(lambda value: f"{value:,.2f}"),
-    )
+    0,
+    "Label",
+    output_df["Ticker"] + " " + output_df["Type"].str.upper(),
+)
 
     # Write the dataset, chart helper data, and chart into separate sheets.
     with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
