@@ -1,34 +1,34 @@
 # Option Pricing and Mispricing Detection
 
-Command-line research engine for pricing near-the-money equity options with the Black-Scholes-Merton model and comparing model prices with Yahoo Finance market prices.
+Command line research engine for pricing near the money equity options with the Black Scholes Merton equations and comparing model prices with Yahoo Finance market prices.
 
 ## Features
 
-- Uses a fixed Top 25 large-cap equity index in `data_fetch.py`.
+- Uses a fixed Top 25 large cap equity index in `data_fetch.py`.
 - Fetches the nearest available option expiry from Yahoo Finance.
-- Selects near-the-money calls and puts using current spot price.
+- Selects near the money calls and puts using current spot price.
 - Estimates annualized historical volatility from recent daily returns.
-- Prices options with Black-Scholes-Merton.
+- Prices options with Black Scholes Merton.
 - Writes an Excel workbook with the full dataset and a mispricing chart.
 
 ## Project Structure
 
 ```text
 .
-|-- bsm.py              # Black-Scholes-Merton formulas
+|-- bsm.py              # Black Scholes Merton formulas
 |-- data_fetch.py       # Yahoo Finance data retrieval and option selection
 |-- main.py             # CLI workflow and Excel workbook writer
 |-- requirements.txt    # Runtime dependencies
 |-- pyproject.toml      # Project metadata
 `-- tests/
-    `-- test_bsm.py     # Standard-library unit tests
+    `-- test_bsm.py     # Standard library unit tests
 ```
 
 ## Requirements
 
 - Python 3.10 or newer
 - Internet access for live yahoo finance market data
-Python 3.11 or 3.12 is recommended for the broadest scientific-package compatibility.
+Python 3.11 or 3.12 is recommended for the broadest scientific package compatibility.
 
 ## Setup
 
