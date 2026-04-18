@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a command-line research engine that prices equity options using the Black–Scholes–Merton (BSM) model and compares theoretical prices with real market data from Yahoo Finance.
+This project is a command-line research engine that prices equity options using the Black Scholes Merton equations and compares theoretical prices with real market data from Yahoo Finance.
 
 It identifies potential option mispricing across the 25 largest S&P 500 companies by market capitalization using each contract’s **actual implied volatility, strike, and expiry**.
 
@@ -10,11 +10,11 @@ It identifies potential option mispricing across the 25 largest S&P 500 companie
 
 ## Features
 
-* Black–Scholes–Merton pricing for **calls and puts**
+* Black Scholes Merton pricing for **calls and puts**
 
-* Dividend-aware option pricing
+* Dividend accounted option pricing
 
-* Real-time option chain data from Yahoo Finance
+* Real time option chain data from Yahoo Finance
 
 * Uses **last actively traded contracts** for realistic pricing inputs
 
@@ -22,9 +22,7 @@ It identifies potential option mispricing across the 25 largest S&P 500 companie
 
   **|Market Price − BSM Price|**
 
-* Processes **Top 25 large-cap equities**
-
-* Modular code structure with unit tests
+* Processes **Top 25 large cap equities**
 
 * Exports results to Excel with visualization
 
@@ -48,18 +46,17 @@ It identifies potential option mispricing across the 25 largest S&P 500 companie
 
 ## How It Works
 
-1. Fetch top 25 companies by market cap
-2. Retrieve active call and put options from Yahoo Finance
-3. Extract:
-
+1. Fetches top 25 companies by market cap
+2. Retrieves active call and put options from Yahoo Finance
+3. Extracts:
    * Spot price
    * Strike
    * Expiry
    * Implied volatility
-4. Compute BSM price
-5. Compare against market price
-6. Calculate absolute mispricing
-7. Export dataset + chart to Excel
+4. Computes BSM price
+5. Compares against market price
+6. Calculates absolute mispricing
+7. Exports dataset + chart to Excel
 
 ---
 
@@ -117,7 +114,7 @@ option_pricing_analysis.xlsx
 Containing:
 
 * Full dataset
-* Absolute mispricing calculations
+* Absolute mispricing calculation
 * Bar chart visualization
 
 ---
