@@ -128,7 +128,7 @@ Theoretical values are compared against observed market prices to identify poten
 - Live stock, option chain, and market cap data ingestion
 - Automatic liquid contract selection based on recent trading activity
 - Model vs market mispricing detection
-- BUY / SELL / HOLD portfolio signal generation
+- BUY / SELL portfolio signal generation
 - Excel workbook export with structured datasets and visual analytics
 - Console progress tracking during market data processing
 - Option spread construction of top mispriced opportunities
