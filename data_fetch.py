@@ -1,21 +1,27 @@
-"""Market data retrieval for the Top 25 option-pricing engine."""
+"""Market data retrieval for the option-pricing engine."""
 
 from __future__ import annotations
 
+import re
+from io import StringIO
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.request import Request, urlopen
 
-import numpy as np
 import pandas as pd
 import yfinance as yf
 
 
 # Settings used while filtering market data and choosing liquid contracts.
-TRADING_DAYS = 252
 MIN_OPTION_PRICE = 0.50
 MIN_VOLATILITY = 0.05
 MIN_TIME_TO_MATURITY = 1 / (365 * 24)
 YFINANCE_CACHE_DIR = Path(__file__).resolve().parent / ".yfinance_cache"
+REUTERS_MARKET_CAP_CSV_URL = (
+    "https://graphics.thomsonreuters.com/automated-charts/production/"
+    "market-cap-ranking-table/data.csv"
+)
+REUTERS_USER_AGENT = "Mozilla/5.0 option-pricing-model/0.1"
 
 YFINANCE_CACHE_DIR.mkdir(exist_ok=True)
 yf.set_tz_cache_location(str(YFINANCE_CACHE_DIR))
@@ -27,37 +33,95 @@ def normalize_yfinance_ticker(symbol: str) -> str:
     return symbol.strip().upper().replace(".", "-")
 
 
+def reuters_symbol_to_yfinance(symbol: str) -> str:
+    """Convert a Reuters company symbol into the yfinance ticker format."""
+    base_symbol = symbol.strip().split(".", maxsplit=1)[0]
+    share_class = re.fullmatch(r"([A-Z]+)([a-z])", base_symbol)
+    if share_class:
+        base_symbol = f"{share_class.group(1)}-{share_class.group(2).upper()}"
+    return normalize_yfinance_ticker(base_symbol)
+
+
+def ticker_from_reuters_stock_link(stock: str) -> str | None:
+    """Extract the ticker from a Reuters company markdown link."""
+    match = re.search(r"/companies/([A-Za-z0-9.]+)", str(stock))
+    if not match:
+        return None
+    return reuters_symbol_to_yfinance(match.group(1))
+
+
+def parse_market_cap(value: object) -> float | None:
+    """Parse Reuters market-cap values into raw dollars."""
+    if value is None or pd.isna(value):
+        return None
+
+    if isinstance(value, int | float):
+        market_cap = float(value)
+        return market_cap if market_cap > 0 else None
+
+    text = str(value).strip().replace(",", "")
+    if not text:
+        return None
+
+    try:
+        market_cap = float(text)
+        return market_cap if market_cap > 0 else None
+    except ValueError:
+        pass
+
+    match = re.fullmatch(r"\$?([0-9]+(?:\.[0-9]+)?)\s*(trillion|billion|million)", text, re.I)
+    if not match:
+        return None
+
+    multiplier = {
+        "trillion": 1e12,
+        "billion": 1e9,
+        "million": 1e6,
+    }[match.group(2).lower()]
+    return float(match.group(1)) * multiplier
+
+
+DEFAULT_COMPANY_LIMIT = 100
+
+
+def parse_reuters_market_cap_table(
+    csv_text: str, limit: int = DEFAULT_COMPANY_LIMIT
+) -> pd.DataFrame:
+    """Parse Reuters' live market-cap ranking CSV into ticker and market-cap rows."""
+    ranking = pd.read_csv(StringIO(csv_text))
+    if "Stock" not in ranking or "Market Value" not in ranking:
+        raise ValueError("Reuters market-cap CSV is missing expected columns.")
+
+    raw_market_cap_column = next(
+        (column for column in ranking.columns if not str(column).strip()),
+        "Market Value",
+    )
+    parsed = pd.DataFrame(
+        {
+            "Ticker": ranking["Stock"].apply(ticker_from_reuters_stock_link),
+            "MarketCap": ranking[raw_market_cap_column].apply(parse_market_cap),
+        }
+    )
+    parsed = parsed.dropna(subset=["Ticker", "MarketCap"]).copy()
+    parsed["MarketCap"] = parsed["MarketCap"].astype(float)
+    return parsed.head(limit).reset_index(drop=True)
+
+
+def fetch_reuters_market_cap_csv() -> str:
+    """Fetch Reuters' live S&P 500 market-cap ranking CSV."""
+    request = Request(REUTERS_MARKET_CAP_CSV_URL, headers={"User-Agent": REUTERS_USER_AGENT})
+    with urlopen(request, timeout=30) as response:
+        return response.read().decode("utf-8-sig")
+
+
+def get_top_companies(limit: int = DEFAULT_COMPANY_LIMIT) -> pd.DataFrame:
+    """Return current S&P 500 companies by Reuters market-cap ranking."""
+    return parse_reuters_market_cap_table(fetch_reuters_market_cap_csv(), limit=limit)
+
+
 def get_top25_companies() -> pd.DataFrame:
-    """Return fixed Top 25 companies by market cap."""
-    # Keeping this list here makes the project easier to run without extra CSV files.
-    data = [
-        ("NVDA", 4.90e12),
-        ("GOOGL", 4.10e12),
-        ("AAPL", 4.00e12),
-        ("MSFT", 3.10e12),
-        ("AMZN", 2.70e12),
-        ("AVGO", 1.90e12),
-        ("META", 1.70e12),
-        ("TSLA", 1.50e12),
-        ("BRK-B", 1.00e12),
-        ("WMT", 1.00e12),
-        ("LLY", 8.75e11),
-        ("JPM", 8.32e11),
-        ("XOM", 6.08e11),
-        ("V", 6.04e11),
-        ("JNJ", 5.64e11),
-        ("MU", 5.13e11),
-        ("ORCL", 5.03e11),
-        ("MA", 4.64e11),
-        ("AMD", 4.53e11),
-        ("COST", 4.43e11),
-        ("NFLX", 4.09e11),
-        ("BAC", 3.84e11),
-        ("CAT", 3.69e11),
-        ("ABBV", 3.68e11),
-        ("CVX", 3.66e11),
-    ]
-    return pd.DataFrame(data, columns=["Ticker", "MarketCap"])
+    """Backward-compatible wrapper for the current top-company universe."""
+    return get_top_companies()
 
 
 def get_spot_price(ticker: yf.Ticker) -> float:
@@ -103,29 +167,6 @@ def get_dividend_yield(ticker: yf.Ticker) -> float:
     if dividend_yield <= 0:
         return 0.0
     return dividend_yield
-
-
-def historical_volatility(symbol: str, window: int = 60) -> float | None:
-    """Compute annualized historical volatility from recent daily log returns."""
-    # Return None when Yahoo data is missing so the ticker can be skipped cleanly.
-    try:
-        data = yf.Ticker(symbol).history(period="1y", auto_adjust=True)
-        if data.empty or "Close" not in data:
-            return None
-
-        # Use daily log returns as the base for historical volatility.
-        close = data["Close"].dropna()
-        returns = np.log(close / close.shift(1)).dropna()
-        if len(returns) < window:
-            return None
-
-        # Convert the daily volatility into an annualized number.
-        volatility = returns.rolling(window).std().iloc[-1] * np.sqrt(TRADING_DAYS)
-        if pd.isna(volatility):
-            return None
-        return float(volatility)
-    except Exception:
-        return None
 
 
 def years_to_expiry(expiry: str) -> float:
@@ -192,7 +233,9 @@ def prepare_active_options(options: pd.DataFrame, expiry: str, option_type: str)
     return tradable
 
 
-def select_last_active_option(ticker: yf.Ticker, expiries: tuple[str, ...] | list[str]) -> pd.Series | None:
+def select_last_active_option(
+    ticker: yf.Ticker, expiries: tuple[str, ...] | list[str]
+) -> pd.Series | None:
     """Select the most recently traded Yahoo option contract for one ticker."""
     candidates: list[pd.DataFrame] = []
 

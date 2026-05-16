@@ -4,15 +4,59 @@ from types import SimpleNamespace
 import pandas as pd
 
 from data_fetch import (
+    DEFAULT_COMPANY_LIMIT,
+    parse_market_cap,
+    parse_reuters_market_cap_table,
     option_market_price,
     prepare_active_options,
+    reuters_symbol_to_yfinance,
     select_last_active_option,
     select_last_active_options_by_type,
+    ticker_from_reuters_stock_link,
 )
 
 
 class OptionSelectionTests(unittest.TestCase):
     """Regression tests for Yahoo option-chain selection helpers."""
+
+    def test_default_company_limit_is_one_hundred(self):
+        self.assertEqual(DEFAULT_COMPANY_LIMIT, 100)
+
+    def test_reuters_symbol_to_yfinance_handles_exchange_and_share_classes(self):
+        self.assertEqual(reuters_symbol_to_yfinance("NVDA.OQ"), "NVDA")
+        self.assertEqual(reuters_symbol_to_yfinance("BRKb.N"), "BRK-B")
+
+    def test_ticker_from_reuters_stock_link_extracts_company_symbol(self):
+        stock = "[Berkshire Hathaway](https://www.reuters.com/companies/BRKb.N)"
+
+        self.assertEqual(ticker_from_reuters_stock_link(stock), "BRK-B")
+
+    def test_parse_market_cap_accepts_raw_numbers_and_display_values(self):
+        self.assertEqual(parse_market_cap("5.5 trillion"), 5.5e12)
+        self.assertEqual(parse_market_cap("946.4 billion"), 946.4e9)
+        self.assertEqual(parse_market_cap(5457369000000), 5457369000000.0)
+
+    def test_parse_reuters_market_cap_table_returns_top_100_rows(self):
+        rows = [
+            "Stock,Market Value, ",
+            "[NVIDIA](https://www.reuters.com/companies/NVDA.OQ),5.5 trillion,5457369000000",
+            "[Alphabet](https://www.reuters.com/companies/GOOGL.OQ),4.8 trillion,4788509000000",
+            "[Berkshire Hathaway](https://www.reuters.com/companies/BRKb.N),1.0 trillion,1040998000000",
+        ]
+        for index in range(4, 111):
+            rows.append(
+                f"[Company {index}](https://www.reuters.com/companies/T{index}.N),"
+                f"{index}.0 billion,{index * 1_000_000_000}"
+            )
+        csv_text = "\n".join(rows)
+
+        companies = parse_reuters_market_cap_table(csv_text, limit=DEFAULT_COMPANY_LIMIT)
+
+        self.assertEqual(len(companies), 100)
+        self.assertEqual(list(companies.columns), ["Ticker", "MarketCap"])
+        self.assertEqual(companies.iloc[0]["Ticker"], "NVDA")
+        self.assertEqual(companies.iloc[2]["Ticker"], "BRK-B")
+        self.assertEqual(companies.iloc[0]["MarketCap"], 5457369000000.0)
 
     def test_market_price_uses_last_price_not_midpoint(self):
         option = pd.Series({"lastPrice": 3.25, "bid": 2.00, "ask": 2.20})

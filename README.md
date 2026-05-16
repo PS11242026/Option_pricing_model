@@ -1,34 +1,89 @@
-# Option Pricing & Mispricing Detection (Black Scholes Merton)
+# Option Mispricing Detection Model and Portfolio Tracker
 
-## Overview
+Command-line research engine for pricing equity options with the Black Scholes Merton (BSM) model, comparing theoretical prices against live Yahoo Finance option data, and ranking the largest model-vs-market mispricing opportunities.
 
-This project is a command-line research engine that prices equity options using the Black Scholes Merton equations and compares theoretical prices with real market data from Yahoo Finance.
-
-It identifies potential option mispricing across the 25 largest S&P 500 companies by market capitalization using each contract’s **actual implied volatility, strike, and expiry**.
-
----
+The default universe is the top 100 S&P 500 companies by live Reuters market-cap ranking.
 
 ## Features
 
-* Black Scholes Merton pricing for **calls and puts**
+- Prices calls and puts with dividend-aware BSM formulas
+- Pulls live market-cap, stock, and option-chain data
+- Selects the most recently traded liquid call and put contracts per ticker
+- Shows a console progress bar calibrated to processed companies
+- Exports the full dataset and mispricing chart to Excel
+- Prints a portfolio tracker with BUY / SELL / HOLD signals
+- Includes unit tests for pricing, data parsing, option selection, CLI output, and tracker logic
 
-* Dividend accounted option pricing
+## Project Structure
 
-* Real time option chain data from Yahoo Finance
+```text
+.
+|-- bsm.py
+|-- data_fetch.py
+|-- main.py
+|-- pricing_engine.py
+|-- tests/
+|-- images/
+|-- requirements.txt
+|-- pyproject.toml
+`-- README.md
+```
 
-* Uses **last actively traded contracts** for realistic pricing inputs
+## Setup
 
-* Computes **absolute mispricing**:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-  **|Market Price − BSM Price|**
+On macOS or Linux, activate the virtual environment with:
 
-* Processes **Top 25 large cap equities**
+```bash
+source .venv/bin/activate
+```
 
-* Exports results to Excel with visualization
+For development and tests, install the optional tooling:
 
----
+```bash
+python -m pip install -e ".[dev]"
+```
 
-## Results & Outputs
+## Run
+
+Run the full pricing engine and portfolio tracker:
+
+```bash
+python main.py
+```
+
+This creates `option_pricing_analysis.xlsx` with:
+
+- `Full Dataset`
+- `Chart Data`
+- `Charts`
+
+Run only the tracker command with a custom number of displayed contracts:
+
+```bash
+python pricing_engine.py --top 10
+```
+
+After installing the project as a package, the console scripts are:
+
+```bash
+option-pricing
+portfolio-tracker --top 10
+```
+
+## Testing
+
+```bash
+python -m pytest
+```
+
+## Output Examples
 
 ### Mispricing Visualization
 ![Mispricing Chart](images/mispricing_chart.png)
@@ -42,105 +97,10 @@ It identifies potential option mispricing across the 25 largest S&P 500 companie
 ### Chart Data Preview
 ![Chart Data](images/chart.png)
 
----
-
-## How It Works
-
-1. Fetches top 25 companies by market cap
-2. Retrieves active call and put options from Yahoo Finance
-3. Extracts:
-   * Spot price
-   * Strike
-   * Expiry
-   * Implied volatility
-4. Computes BSM price
-5. Compares against market price
-6. Calculates absolute mispricing
-7. Exports dataset + chart to Excel
-
----
-
-## Project Structure
-
-```
-.
-├── main.py              # CLI workflow and Excel output
-├── bsm.py               # Black-Scholes-Merton pricing logic
-├── data_fetch.py        # Market data retrieval and option selection
-├── tests/               # Unit tests
-├── images/              # Output screenshots for README
-├── outputs/             # Sample Excel output
-├── README.md
-├── requirements.txt
-├── pyproject.toml
-```
-
----
-
-## Setup
-
-### Windows
-
-```
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-### macOS / Linux
-
-```
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
----
-
-## Run
-
-```
-python main.py
-```
-
-This generates:
-
-```
-option_pricing_analysis.xlsx
-```
-
-Containing:
-
-* Full dataset
-* Absolute mispricing calculation
-* Bar chart visualization
-
----
-
-## Testing
-
-Run unit tests:
-
-```
-python -m unittest discover -s tests
-```
-
----
-
 ## Notes
 
-* Option data is sourced from Yahoo Finance and may be delayed or incomplete
-* Contracts are selected based on **most recent trading activity**
-* Call and put options may have different expiries due to market liquidity
-* Results vary over time as they depend on live market data
-
----
-
-## Key Observations
-
-* Higher implied volatility stocks exhibit larger deviations
-* Short-dated options tend to show more pricing noise
-
-
+- Market data is sourced from Yahoo Finance and Reuters and may be delayed, incomplete, or temporarily unavailable.
+- Contracts are selected based on recent trading activity and basic liquidity filters.
+- Call and put options can have different expiries because the tracker uses the most active contract for each side.
+- Results vary over time because they depend on live market data.
+- This project is for research and education, not financial advice.

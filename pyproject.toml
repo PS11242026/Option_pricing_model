@@ -12,5 +12,18 @@ dependencies = [
     "xlsxwriter>=3.2",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0",
+    "ruff>=0.14",
+]
+
 [tool.setuptools]
-py-modules = ["bsm", "data_fetch", "main"]
+py-modules = ["bsm", "data_fetch", "main", "pricing_engine"]
+
+[project.scripts]
+option-pricing = "main:run_engine_cli"
+portfolio-tracker = "pricing_engine:run_tracker"
+
+[tool.ruff]
+line-length = 100

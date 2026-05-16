@@ -7,7 +7,9 @@ import math
 from scipy.stats import norm
 
 
-def _d1_d2(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> tuple[float, float]:
+def _d1_d2(
+    S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0
+) -> tuple[float, float]:
     """Check the inputs and calculate the two BSM helper values."""
     # These checks catch values that would break the math below.
     if S <= 0:
@@ -44,7 +46,9 @@ def put_price(S: float, K: float, T: float, r: float, sigma: float, q: float = 0
     return K * math.exp(-r * T) * norm.cdf(-d2) - S * math.exp(-q * T) * norm.cdf(-d1)
 
 
-def option_price(S: float, K: float, T: float, r: float, sigma: float, option_type: str, q: float = 0.0) -> float:
+def option_price(
+    S: float, K: float, T: float, r: float, sigma: float, option_type: str, q: float = 0.0
+) -> float:
     """Calculate a European option price for ``call`` or ``put``."""
     # Let inputs like "Call", "CALL", and "call" behave the same way.
     option_type = option_type.lower()

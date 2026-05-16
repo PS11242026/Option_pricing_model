@@ -1,14 +1,15 @@
-"""Top 25 option-pricing and mispricing detection engine."""
+"""Top 100 option-pricing and mispricing detection engine."""
 
 from __future__ import annotations
 
+import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
 from bsm import option_price
-from data_fetch import fetch_active_option_rows, get_top25_companies
+from data_fetch import DEFAULT_COMPANY_LIMIT, fetch_active_option_rows, get_top_companies
 
 
 # Main settings for the pricing run and the Excel output.
@@ -30,12 +31,13 @@ OUTPUT_COLUMNS = [
     "BSM",
     "AbsMis",
 ]
+PROGRESS_BAR_WIDTH = 32
 
 
 def print_header() -> None:
     """Print the model overview and formula definitions shown at startup."""
     print(
-        "Option Mispricing Detection Model for the 25 largest S&P 500 companies "
+        "Option Mispricing Detection Model and option spread construction for the largest 100 S&P 500 companies "
         "by market cap using Black Scholes Merton call and put pricing with "
         "each side's last actively traded option implied volatility"
     )
@@ -61,17 +63,43 @@ def print_header() -> None:
     print("Outputs: Excel workbook with dataset and absolute mispricing chart")
 
 
-def build_full_dataset() -> pd.DataFrame:
-    companies = get_top25_companies()
-    rows: list[dict[str, float | str]] = []
+def format_progress_bar(completed: int, total: int, width: int = PROGRESS_BAR_WIDTH) -> str:
+    """Return a text progress bar calibrated to completed work units."""
+    if total <= 0:
+        return f"[{'#' * width}] 100% (0/0)"
 
-    for _, company in companies.iterrows():
+    completed = max(0, min(completed, total))
+    fraction = completed / total
+    filled = round(width * fraction)
+    percent = round(100 * fraction)
+    return f"[{'#' * filled}{'-' * (width - filled)}] {percent:3d}% ({completed}/{total})"
+
+
+def print_progress_bar(completed: int, total: int, ticker: str = "") -> None:
+    """Render one in-place progress update for the market-data loop."""
+    suffix = f" {ticker}" if ticker else ""
+    clear_line = "\033[K" if sys.stdout.isatty() else ""
+    end = "\n" if completed >= total else "\r"
+    print(f"{format_progress_bar(completed, total)}{suffix}{clear_line}", end=end, flush=True)
+
+
+def build_full_dataset(risk_free_rate: float = RISK_FREE_RATE) -> pd.DataFrame:
+    print("Fetching live market data....")
+    companies = get_top_companies(limit=DEFAULT_COMPANY_LIMIT)
+    print("Fetched market data successfully")
+    print("Processing market data")
+
+    rows: list[dict[str, float | str]] = []
+    total_companies = len(companies)
+    print_progress_bar(0, total_companies)
+
+    for position, (_, company) in enumerate(companies.iterrows(), start=1):
         ticker = str(company["Ticker"])
         market_cap = float(company["MarketCap"])
         option_rows = fetch_active_option_rows(ticker, market_cap)
 
         if not option_rows:
-            print(f"{ticker}: skipped, no usable active option data")
+            print_progress_bar(position, total_companies, f"{ticker} skipped")
             continue
 
         for row in option_rows:
@@ -79,13 +107,15 @@ def build_full_dataset() -> pd.DataFrame:
                 float(row["Spot"]),
                 float(row["Strike"]),
                 float(row["t(years)"]),
-                RISK_FREE_RATE,
+                risk_free_rate,
                 float(row["Volatility"]),
                 str(row["Type"]),
                 float(row["DividendYield"]),
             )
             row["AbsMis"] = abs(float(row["BSM"]) - float(row["Market"]))
             rows.append(row)
+
+        print_progress_bar(position, total_companies, ticker)
 
     if not rows:
         return pd.DataFrame()
@@ -111,7 +141,7 @@ def save_workbook(df: pd.DataFrame, path: str = WORKBOOK_XLSX) -> None:
     chart_df.insert(
         0,
         "Label",
-        output_df["Ticker"] + " "
+        output_df["Ticker"] + " $" + output_df["Spot"].map(lambda value: f"{float(value):,.2f}"),
     )
 
     with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
@@ -194,7 +224,9 @@ def print_original_style_results(df: pd.DataFrame) -> None:
         market_put = money(float(put_row["Market"])) if put_row is not None else "n/a"
         bsm_call = money(float(call_row["BSM"])) if call_row is not None else "n/a"
         bsm_put = money(float(put_row["BSM"])) if put_row is not None else "n/a"
-        call_mis = money(float(call_row["BSM"] - call_row["Market"])) if call_row is not None else "n/a"
+        call_mis = (
+            money(float(call_row["BSM"] - call_row["Market"])) if call_row is not None else "n/a"
+        )
         put_mis = money(float(put_row["BSM"] - put_row["Market"])) if put_row is not None else "n/a"
 
         print(f"\n{ticker}")
@@ -239,18 +271,39 @@ def print_original_style_results(df: pd.DataFrame) -> None:
         print(f"  Market call / put: ${market_call} / ${market_put}")
         print(f"  BSM call / put: ${bsm_call} / ${bsm_put}")
         print(f"  Mispricing call / put: ${call_mis} / ${put_mis}")
-def run_engine() -> None:
-    print_header()
-    print(f"Risk-free rate assumption: {RISK_FREE_RATE:.2%}")
 
-    df = build_full_dataset()
+
+def print_pricing_engine_tracker(df: pd.DataFrame, risk_free_rate: float = RISK_FREE_RATE) -> None:
+    """Print the ranked portfolio tracker after the pricing run."""
+    from pricing_engine import DEFAULT_TOP_N, build_tracker_table, print_tracker_table
+
+    tracker_df = build_tracker_table(df, top_n=DEFAULT_TOP_N)
+    print()
+    print_tracker_table(tracker_df, top_n=DEFAULT_TOP_N, risk_free_rate=risk_free_rate)
+
+
+def run_engine(
+    risk_free_rate: float = RISK_FREE_RATE,
+    include_tracker: bool = False,
+) -> pd.DataFrame:
+    print_header()
+    print(f"Risk-free rate assumption: {risk_free_rate:.2%}")
+
+    df = build_full_dataset(risk_free_rate=risk_free_rate)
     if df.empty:
         print("\nNo data found")
-        return
+        return df
 
     print_original_style_results(df)
     save_workbook(df)
+    if include_tracker:
+        print_pricing_engine_tracker(df, risk_free_rate=risk_free_rate)
+    return df
+
+
+def run_engine_cli() -> None:
+    run_engine(include_tracker=True)
 
 
 if __name__ == "__main__":
-    run_engine()
+    run_engine_cli()
