@@ -14,6 +14,7 @@ from data_fetch import DEFAULT_COMPANY_LIMIT, fetch_active_option_rows, get_top_
 
 # Main settings for the pricing run and the Excel output.
 RISK_FREE_RATE = 0.037
+PROJECT_DIR = Path(__file__).resolve().parent
 WORKBOOK_XLSX = "option_pricing_analysis.xlsx"
 OUTPUT_COLUMNS = [
     "Ticker",
@@ -132,7 +133,7 @@ def cleaned_output_df(df: pd.DataFrame) -> pd.DataFrame:
     return output_df.rename(columns={"AbsMis": "Absolute Mispricing"})
 
 
-def save_workbook(df: pd.DataFrame, path: str = WORKBOOK_XLSX) -> None:
+def save_workbook(df: pd.DataFrame, path: str | Path = WORKBOOK_XLSX) -> None:
     output_path = writable_workbook_path(path)
 
     output_df = cleaned_output_df(df)
@@ -190,20 +191,24 @@ def save_workbook(df: pd.DataFrame, path: str = WORKBOOK_XLSX) -> None:
 
         charts_sheet.insert_chart("B2", bar, {"x_scale": 1.8, "y_scale": 1.35})
 
-    print(f"\nSaved {output_path}")
+    print(f"\nSaved workbook to {output_path}")
 
 
-def writable_workbook_path(path: str) -> str:
+def writable_workbook_path(path: str | Path) -> Path:
     target = Path(path)
+    if not target.is_absolute():
+        target = PROJECT_DIR / target
+
     try:
+        target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("a+b"):
             pass
-        return str(target)
+        return target
     except PermissionError:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         fallback = target.with_name(f"{target.stem}_{timestamp}{target.suffix}")
         print(f"\n{target} is locked, saving to {fallback} instead.")
-        return str(fallback)
+        return fallback
 
 
 def money(value: float) -> str:

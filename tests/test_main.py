@@ -1,6 +1,8 @@
 import io
+import tempfile
 import unittest
 from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
@@ -34,6 +36,13 @@ class MainDatasetTests(unittest.TestCase):
             main.format_progress_bar(2, 5, width=10),
             "[####------]  40% (2/5)",
         )
+
+    def test_writable_workbook_path_resolves_relative_paths_to_project_dir(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch("main.PROJECT_DIR", Path(temp_dir)):
+                workbook_path = main.writable_workbook_path("report.xlsx")
+
+        self.assertEqual(workbook_path, Path(temp_dir) / "report.xlsx")
 
     def test_run_engine_cli_includes_pricing_engine_tracker(self):
         dataset = pd.DataFrame(
