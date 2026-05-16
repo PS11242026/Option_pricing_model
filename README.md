@@ -1,8 +1,8 @@
-# Option Mispricing Detection Model and Portfolio Tracker
+# Option Mispricing Detection and Spread Construction using Black Scholes Merton
 
-A quantitative finance command line research engine that prices equity options of top 100 S&P 500 companies by market capitalization using the Black Scholes Merton (BSM) equations, compares theoretical values against live Yahoo Finance market prices for each conntract, detects potential mispricing opportunities, and generates an option spread of top 50 mispriced contracts along with trade signals.
+A quantitative finance command line research engine that prices equity options of top 100 S&P 500 companies by market capitalization using the Black Scholes Merton (BSM) equations, compares theoretical values against live Yahoo Finance market prices for each contract, detects potential mispricing opportunities, and generates an option spread of top 50 mispriced contracts along with trade signals.
 
-The engine evaluates a dynamic basket of the top 100 S&P 500 companies by live Reuters market cap ranking.
+The engine evaluates a dynamic basket of **the top 100 S&P 500 companies by live Reuters market cap ranking**.
 
 ---
 ## Sample Output
@@ -42,39 +42,6 @@ The engine evaluates a dynamic basket of the top 100 S&P 500 companies by live R
 [Download Sample Excel Workbook](option_pricing_analysis.xlsx)
 
 ---
-
-
-## Features
-
-- Black Scholes Merton pricing for calls and puts
-- Dividend accounted option valuation
-- Live stock, option chain, and market cap data ingestion
-- Automatic liquid contract selection based on recent trading activity
-- Model vs market mispricing detection
-- BUY / SELL / HOLD portfolio signal generation
-- Excel workbook export with structured datasets and visual analytics
-- Console progress tracking during market processing
-- Option spread construction of top mispriced opportunities
-- Automated chart generation for quick visual analysis
-- Unit tests for pricing logic, option selection, parsing, CLI output, and tracker behavior
-
----
-
-## Quantitative Methodology
-
-This project uses the Black Scholes Merton framework to estimate fair option values based on:
-
-- Underlying stock price
-- Strike price
-- Time to expiry
-- Risk free interest rate
-- Implied volatility
-- Dividend yield
-
-Theoretical values are compared against observed market prices to identify potentially underpriced and overpriced contracts.
-
----
-
 ## Project Structure
 
 ```text
@@ -138,16 +105,38 @@ Workbook sheets:
 - `Full Dataset`
 - `Chart Data`
 - `Charts`
+  
+## Quantitative Methodology
 
-Run only the portfolio tracker:
+This project uses the Black Scholes Merton framework to estimate fair option values based on:
 
+- Underlying stock price
+- Strike price
+- Time to expiry
+- Risk free interest rate
+- Implied volatility
+- Dividend yield
 
-Installed package entry points:
+Theoretical values are compared against observed market prices to identify potentially underpriced and overpriced contracts.
 
-```bash
-option-pricing
-portfolio-tracker --top 10
-```
+---
+
+## Features
+
+- Black Scholes Merton pricing for calls and puts
+- Dividend accounted option valuation
+- Live stock, option chain, and market cap data ingestion
+- Automatic liquid contract selection based on recent trading activity
+- Model vs market mispricing detection
+- BUY / SELL / HOLD portfolio signal generation
+- Excel workbook export with structured datasets and visual analytics
+- Console progress tracking during market processing
+- Option spread construction of top mispriced opportunities
+- Automated chart generation for quick visual analysis
+- Unit tests for pricing logic, option selection, parsing, CLI output, and tracker behavior
+
+---
+
 
 ## Testing
 
