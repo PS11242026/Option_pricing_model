@@ -155,5 +155,4 @@ python -m pytest
 - Contracts are selected using liquidity and recent trading activity heuristics.
 - Call and put expiries may differ because the most actively traded contract is selected independently.
 - Results change over time as live market conditions update.
-- This project is intended for quantitative research and educational use only.
-- This is not financial advice.
+- This project is intended for quantitative research and educational use only, this is not financial advice.
