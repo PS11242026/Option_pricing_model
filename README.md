@@ -1,22 +1,60 @@
 # Option Mispricing Detection Model and Portfolio Tracker
 
-A quantitative finance command-line research engine that prices equity options using the Black-Scholes-Merton (BSM) model, compares theoretical values against live Yahoo Finance market prices, detects potential mispricing opportunities, and generates portfolio trade signals.
+A quantitative finance command line research engine that prices equity options of top 100 S&P 500 companies by market capitalization using the Black Scholes Merton (BSM) equations, compares theoretical values against live Yahoo Finance market prices for each conntract, detects potential mispricing opportunities, and generates an option spread of top 50 mispriced contracts along with trade signals.
 
-The engine evaluates a default universe of the top 100 S&P 500 companies by live Reuters market-cap ranking.
+The engine evaluates a dynamic basket of the top 100 S&P 500 companies by live Reuters market cap ranking.
+
+---
+## Sample Output
+
+### Initial Processing Output
+
+![Initial Console Output](images/console.png)
 
 ---
 
+### Option Spread Construction and Final Signal Output
+
+![Portfolio Tracker](images/portfolio_tracker.png)
+
+---
+
+### Full Dataset Export
+
+![Dataset Snapshot](images/dataset.png)
+
+---
+
+### Chart Data Worksheet
+
+![Chart Data Preview](images/chart.png)
+
+---
+
+### Mispricing Visualization
+
+![Mispricing Chart](images/mispricing_chart.png)
+
+---
+
+## Download Sample Output Workbook
+
+[Download Sample Excel Workbook](option_pricing_analysis.xlsx)
+
+---
+
+
 ## Features
 
-- Black-Scholes-Merton pricing for calls and puts
-- Dividend-aware option valuation
-- Live stock, option chain, and market-cap data ingestion
+- Black Scholes Merton pricing for calls and puts
+- Dividend accounted option valuation
+- Live stock, option chain, and market cap data ingestion
 - Automatic liquid contract selection based on recent trading activity
-- Model-vs-market mispricing detection
+- Model vs market mispricing detection
 - BUY / SELL / HOLD portfolio signal generation
 - Excel workbook export with structured datasets and visual analytics
 - Console progress tracking during market processing
-- Portfolio ranking of top mispriced option opportunities
+- Option spread construction of top mispriced opportunities
 - Automated chart generation for quick visual analysis
 - Unit tests for pricing logic, option selection, parsing, CLI output, and tracker behavior
 
@@ -24,12 +62,12 @@ The engine evaluates a default universe of the top 100 S&P 500 companies by live
 
 ## Quantitative Methodology
 
-This project uses the Black-Scholes-Merton framework to estimate fair option values based on:
+This project uses the Black Scholes Merton framework to estimate fair option values based on:
 
 - Underlying stock price
 - Strike price
 - Time to expiry
-- Risk-free interest rate
+- Risk free interest rate
 - Implied volatility
 - Dividend yield
 
@@ -88,7 +126,7 @@ pip install -e ".[dev]"
 Run the full pricing engine:
 
 ```bash
-python main.py
+python pricing_engine.py
 ```
 
 This generates:
@@ -103,9 +141,6 @@ Workbook sheets:
 
 Run only the portfolio tracker:
 
-```bash
-python pricing_engine.py --top 10
-```
 
 Installed package entry points:
 
@@ -113,46 +148,6 @@ Installed package entry points:
 option-pricing
 portfolio-tracker --top 10
 ```
-
----
-
-## Sample Output
-
-### Initial Processing Output
-
-![Initial Console Output](images/console.png)
-
----
-
-### Portfolio Tracker and Final Signal Output
-
-![Portfolio Tracker](images/portfolio_tracker.png)
-
----
-
-### Full Dataset Export
-
-![Dataset Snapshot](images/dataset.png)
-
----
-
-### Chart Data Worksheet
-
-![Chart Data Preview](images/chart.png)
-
----
-
-### Mispricing Visualization
-
-![Mispricing Chart](images/mispricing_chart.png)
-
----
-
-## Download Sample Output Workbook
-
-[Download Sample Excel Workbook](option_pricing_analysis.xlsx)
-
----
 
 ## Testing
 
