@@ -130,10 +130,10 @@ Theoretical values are compared against observed market prices to identify poten
 - Model vs market mispricing detection
 - BUY / SELL / HOLD portfolio signal generation
 - Excel workbook export with structured datasets and visual analytics
-- Console progress tracking during market processing
+- Console progress tracking during market data processing
 - Option spread construction of top mispriced opportunities
 - Automated chart generation for quick visual analysis
-- Unit tests for pricing logic, option selection, parsing, CLI output, and tracker behavior
+- Unit tests for pricing logic, option selection, parsing and CLI output
 
 ---
 
