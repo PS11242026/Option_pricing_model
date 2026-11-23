@@ -88,6 +88,23 @@ pip install -e ".[dev]"
 
 ---
 
+## Web App
+
+An interactive front end (`streamlit_app.py`) runs on the same engine:
+
+- **Pricing calculator**: BSM call/put values, a put-call parity check and a
+  value-vs-spot chart for any inputs.
+- **Live mispricing scan**: pick up to 15 tickers; the app pulls live Yahoo
+  Finance option chains, prices them and ranks contracts by mispricing, with
+  an Excel download. If live data is unavailable it falls back to the bundled
+  snapshot in `sample_data/option_snapshot.csv`.
+
+```bash
+streamlit run streamlit_app.py
+```
+
+---
+
 ## Usage
 
 Run the full pricing engine:
