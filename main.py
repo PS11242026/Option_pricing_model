@@ -310,5 +310,22 @@ def run_engine_cli() -> None:
     run_engine(include_tracker=True)
 
 
+def running_under_streamlit() -> bool:
+    """True when this file is executed by `streamlit run` (e.g. a hosted app
+    whose entry point was set to main.py) rather than by `python main.py`."""
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+    except ImportError:
+        return False
+    return get_script_run_ctx() is not None
+
+
 if __name__ == "__main__":
-    run_engine_cli()
+    if running_under_streamlit():
+        # Serve the web app instead of the long-running CLI scan. run_path
+        # re-executes it on every Streamlit rerun (an import would be cached).
+        import runpy
+
+        runpy.run_path(str(PROJECT_DIR / "streamlit_app.py"), run_name="__main__")
+    else:
+        run_engine_cli()

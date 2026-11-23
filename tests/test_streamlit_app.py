@@ -41,3 +41,13 @@ def test_scan_falls_back_to_snapshot(monkeypatch):
     assert not at.exception
     assert any("snapshot" in w.value for w in at.warning)
     assert len(at.dataframe) == 1
+
+
+def test_main_py_serves_web_app_under_streamlit():
+    """A hosted app whose entry point is main.py must show the web app,
+    not start the long-running CLI scan."""
+    main_py = str(Path(APP).parent / "main.py")
+    at = AppTest.from_file(main_py, default_timeout=60).run()
+    assert not at.exception
+    assert at.title[0].value == "Option Mispricing Detection Model"
+    assert {m.label for m in at.metric} >= {"Call value", "Put value"}
