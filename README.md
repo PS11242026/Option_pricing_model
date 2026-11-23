@@ -1,5 +1,9 @@
 # Option Mispricing Detection and Spread Construction using Black Scholes Merton
 
+**[▶ Live web app](https://optionpricingengine.streamlit.app/)**: BSM calculator and
+mispricing scan (the hosted app falls back to a bundled snapshot when Yahoo
+Finance blocks cloud servers; run it locally for live data).
+
 A quantitative finance command line research engine that prices equity options of the **top 100 S&P 500 companies by market capitalization** using the **Black Scholes Merton (BSM) equations**, compares theoretical values against live Yahoo Finance market prices for each contract, detects potential mispricing opportunities, and generates an option spread of top 50 mispriced contracts along with trade signals.
 
 The engine evaluates a dynamic basket of the top 100 S&P 500 companies by live Reuters market cap ranking.
